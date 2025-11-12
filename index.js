@@ -3,6 +3,7 @@ const fs = require('fs');
 const core = require('./core');
 const ghCore = require('@actions/core');
 const { LokaliseApi } = require('@lokalise/node-api');
+const githubVcs = require('./vcs/github');
 
 const apiKey = ghCore.getInput('api-token');
 const projectId = ghCore.getInput('project-id');
@@ -15,6 +16,8 @@ const ref = ghCore.getInput('ref');
 const targetRef = ghCore.getInput('target-ref');
 const repository = ghCore.getInput('repository');
 const repoToken = ghCore.getInput('repo-token');
+
+const vcs = githubVcs({ token: repoToken, repository });
 
 core({
   apiKey,
@@ -31,7 +34,8 @@ core({
   repoToken
 }, {
   LokaliseApi,
-  fs
+  fs,
+  vcs
 })
 .then((result) => {
   ghCore.setOutput('result', JSON.stringify(result));

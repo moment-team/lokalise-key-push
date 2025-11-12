@@ -1,6 +1,5 @@
 const path = require('path');
 const propertiesFormatParser = require('properties-parser');
-const { Octokit } = require("octokit");
 const { JsonDiffer } = require('json-difference');
 const jsondifference = new JsonDiffer();
 
@@ -9,23 +8,18 @@ const LANG_ISO_PLACEHOLDER = '%LANG_ISO%';
 let _context;
 let _lokalise;
 let _fs;
-let _octokitUrl;
-let _octokit;
+let _vcs;
 
 
-module.exports = async (context, { LokaliseApi, fs, debug }) => {
+module.exports = async (context, { LokaliseApi, fs, vcs, debug }) => {
   _context = context;
   _lokalise = new LokaliseApi({ apiKey: context.apiKey });
   _fs = fs;
-  _octokit = new Octokit({ auth: _context.repoToken });
-  _octokitUrl = `/repos/${_context.repository}`
+  _vcs = vcs;
 
-  const { data: compareResult } = await _octokit.request(
-      _octokitUrl + '/compare/{targetRef}...{ref}',
-      { targetRef: context.targetRef, ref: context.ref }
-  );
+  const compareResult = await _vcs.compare(context.targetRef, context.ref);
 
-  if (compareResult.ahead_by === 0) {
+  if (!compareResult.commits || compareResult.commits.length === 0) {
     return "No ahead commits";
   }
 
@@ -69,7 +63,7 @@ module.exports = async (context, { LokaliseApi, fs, debug }) => {
     if (!allToCreateInPlace && Object.keys(keysToCreate).length > 0) {
       const createRequest = buildLokaliseCreateKeysRequest(keysToCreate);
       console.log(`Pushing ${createRequest.length} new keys to Lokalise`);
-      const createResult = debug ? {items: []} : await _lokalise.keys.create(createRequest, { project_id: _context.projectId });
+      const createResult = debug ? {items: [], errors: []} : await _lokalise.keys.create(createRequest, { project_id: _context.projectId });
       createResult.items.forEach(keyObj => {
         delete keysToUpdate[keyObj.key_name[_context.platform]]
       });
@@ -156,10 +150,8 @@ async function composeDiffSequence(compareResult) {
   const diffSequence = {};
   // const filesContent = {};
   const previousContents = {};
-  for (const commit of compareResult.commits.filter(commit => commit.parents.length === 1)) {
-    const { data: commitResult } = await _octokit.request(_octokitUrl + '/commits/{sha}', {
-      sha: commit.sha
-    });
+  for (const commit of compareResult.commits) {
+    const commitResult = await _vcs.getCommit(commit.id || commit.sha);
     const i18nFiles = commitResult.files.filter(file => filenamePattern.test(file.filename));
 
     for (const file of i18nFiles) {
@@ -178,7 +170,7 @@ async function composeDiffSequence(compareResult) {
       // filesContent[commit.sha] ||= {};
       // filesContent[commit.sha][language] ||= jsonFileContent;
 
-      const parentSha = commit.parents[0].sha;
+      const parentSha = (commitResult.parents && commitResult.parents[0] && commitResult.parents[0].sha) || (commit.parents && commit.parents[0] && commit.parents[0].sha);
       const jsonPreviousContent = previousContents[language] || await getFileContent(file.filename, parentSha).catch((e) => {
         if (e.name === 'SyntaxError' || e.status === 404) {
           return null;
@@ -199,7 +191,7 @@ async function composeDiffSequence(compareResult) {
         }
         diffSequence[language].push({
           diff: jsonDifferenceResult,
-          date: commit.commit.committer.date
+          date: commitResult.committedAt || commit.committedAt
         });
       }
 
@@ -211,9 +203,7 @@ async function composeDiffSequence(compareResult) {
 }
 
 async function getFileContent(path, ref) {
-  const { data: fileContent } = await _octokit.request(_octokitUrl + '/contents/{path}?ref={ref}', {
-    path, ref, headers: { accept: 'application/vnd.github.VERSION.raw' }
-  });
+  const fileContent = await _vcs.getFileContent(path, ref);
 
   if (_context.format === 'properties') {
     return propertiesFormatParser.parse(fileContent);

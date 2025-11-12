@@ -1,11 +1,14 @@
 {
   "name": "push-lokalise-keys",
-  "version": "4.3.5",
+  "version": "4.4.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "ncc build index.js -o dist"
+    "build:github": "ncc build index.js -o dist",
+    "build:gitlab": "ncc build gitlab.js -o dist/gitlab",
+    "build:all": "npm run build:github && npm run build:gitlab",
+    "prepare": "npm run build:all"
   },
   "keywords": [],
   "author": "",
@@ -14,10 +17,10 @@
     "@actions/core": "^1.1.1",
     "@lokalise/node-api": "^6.2.1",
     "json-difference": "^1.0.4",
-    "octokit": "^1.7.1",
+    "octokit": "^5.0.5",
     "properties-parser": "^0.3.1"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.28.6"
+    "@vercel/ncc": "^0.38.4"
   }
 }
