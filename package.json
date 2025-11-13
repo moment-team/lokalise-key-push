@@ -1,6 +1,6 @@
 {
   "name": "push-lokalise-keys",
-  "version": "4.4.0",
+  "version": "4.4.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,8 @@
   "dependencies": {
     "@actions/core": "^1.1.1",
     "@lokalise/node-api": "^6.2.1",
-    "json-difference": "^1.0.4",
+    "json-difference": "1.0.4",
+    "node-fetch": "^3.3.2",
     "octokit": "^5.0.5",
     "properties-parser": "^0.3.1"
   },

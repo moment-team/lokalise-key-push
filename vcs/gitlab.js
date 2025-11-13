@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const fetch = require('node-fetch').default;
 
 module.exports = function gitlabVcs({ token, jobToken, projectId, apiBase = 'https://gitlab.com/api/v4' }) {
   const base = apiBase.replace(/\/$/, '');

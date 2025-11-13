@@ -6,7 +6,7 @@
 
 const path = __nccwpck_require__(6928);
 const propertiesFormatParser = __nccwpck_require__(7583);
-const { JsonDiffer } = __nccwpck_require__(7359);
+const { JsonDiffer } = __nccwpck_require__(2689);
 const jsondifference = new JsonDiffer();
 
 const LANG_ISO_PLACEHOLDER = '%LANG_ISO%';
@@ -13464,11 +13464,78 @@ exports.parse = function (s) {
 
 /***/ }),
 
-/***/ 7359:
+/***/ 2689:
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
-Object.defineProperty(exports,Symbol.toStringTag,{value:"Module"});const t=(e,f)=>{const o=[];for(const i in e)if(f.hasOwnProperty(i)){if(typeof e[i]=="object"&&typeof f[i]=="object"&&JSON.stringify(e[i])===JSON.stringify(f[i])||e[i]===f[i])continue;if(e[i]==="@{}"||e[i]==="@[]"){const n=f[i]==="@{}"?{}:f[i]==="@[]"?[]:f[i];e[i]==="@{}"?JSON.stringify(f[i])!=="{}"&&o.push([i,{},n]):JSON.stringify(f[i])!=="[]"&&o.push([i,[],n])}else o.push([i,e[i],f[i]])}return o},p=(e,f)=>{const o=[];let i=0;for(const n in e)if(!(n in f)){const r=e[n]==="@{}"?{}:e[n]==="@[]"?[]:e[n];o[i]=[n,r],i++}return o},O=(e,f,o,i)=>{const n=i?e?"[":".":"/",r=i?e?"]":"":e?"[]":"";return f==="__start__"?`${i&&e?"[":""}${o}${r}`:`${f}${n}${o}${r}`},s=(e,f=!1,o,i="__start__")=>{o===void 0&&(o=Array.isArray(e)?{__root__:"@[]"}:{__root__:"@{}"});for(const n of Object.keys(e)){const r=O(Array.isArray(e),i,n,f);typeof e[n]=="object"&&e[n]!==null?(Object.keys(e[n]).length===0?o[r]=e[n]:o[r]=Array.isArray(e[n])?"@[]":"@{}",s(e[n],f,o,r)):o[r]=e[n]}return o},c=e=>(e.edited=e.edited.filter(f=>!(typeof f[1]=="object"&&f[2]==="@{}")).map(f=>f[2]==="@{}"?[f[0],f[1],{}]:f[2]==="@[]"?[f[0],f[1],[]]:f),e),b={isLodashLike:!1},j=(e,f,o)=>{const{isLodashLike:i}=o??b,n={added:[],removed:[],edited:[]},r=typeof e=="string"?JSON.parse(e):e,_=typeof f=="string"?JSON.parse(f):f,y=s(r,i),g=s(_,i);return n.removed=p(y,g),n.added=p(g,y),n.edited=t(y,g),c(n)};exports.getDiff=j;exports.getEditedPaths=t;exports.getPathsDiff=p;exports.getStructPaths=s;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var JsonDiffer = /** @class */ (function () {
+    function JsonDiffer() {
+    }
+    JsonDiffer.prototype.getDiff = function (struct1, struct2) {
+        var delta = {
+            new: [],
+            removed: [],
+            edited: []
+        };
+        var struct1_paths = this.getStructPaths(struct1);
+        var struct2_paths = this.getStructPaths(struct2);
+        // A-B
+        delta.removed = this.getPathsDiff(struct1_paths, struct2_paths);
+        // B-A
+        delta.new = this.getPathsDiff(struct2_paths, struct1_paths);
+        // a->b
+        delta.edited = this.getEditedPaths(struct1_paths, struct2_paths);
+        return delta;
+    };
+    JsonDiffer.prototype.getStructPaths = function (struct, paths, currentpath) {
+        if (paths === void 0) { paths = []; }
+        if (currentpath === void 0) { currentpath = ''; }
+        for (var key in struct) {
+            var path = currentpath !== '' ? currentpath + '/' + key : key;
+            if (typeof struct[key] == 'object') {
+                this.getStructPaths(struct[key], paths, path);
+            }
+            else {
+                paths[path] = struct[key];
+            }
+        }
+        return paths;
+    };
+    // Difference by key
+    JsonDiffer.prototype.getPathsDiff = function (struct1_paths, struct2_paths) {
+        var diff = {};
+        for (var key in struct1_paths) {
+            if (!(key in struct2_paths)) {
+                diff[key] = struct1_paths[key];
+            }
+        }
+        return diff;
+    };
+    // Difference by value
+    JsonDiffer.prototype.getEditedPaths = function (struct1_paths, struct2_paths) {
+        var _a;
+        var diffs = [];
+        var diff = {};
+        for (var key in struct1_paths) {
+            if (struct2_paths.hasOwnProperty(key)) {
+                if (struct1_paths[key] !== struct2_paths[key]) {
+                    diff = (_a = {},
+                        _a[key] = {
+                            oldvalue: struct1_paths[key],
+                            newvalue: struct2_paths[key]
+                        },
+                        _a);
+                    diffs.push(diff);
+                }
+            }
+        }
+        return diffs;
+    };
+    return JsonDiffer;
+}());
+exports.JsonDiffer = JsonDiffer;
 
 
 /***/ }),
